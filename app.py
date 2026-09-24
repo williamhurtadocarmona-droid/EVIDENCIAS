@@ -54,15 +54,15 @@ else:
         with col2:
             g3 = st.text_input("Grupo 3 (Opcional):", value="")
 
-        st.markdown("---")
-        st.markdown("### 2. Registro Fotográfico")
-        imagenes_cargadas = st.file_uploader(
-            "Carga las fotos de evidencia (JPG, PNG):", 
-            type=["jpg", "jpeg", "png"], 
-            accept_multiple_files=True
-        )
+    st.markdown("---")
+    st.markdown("### 2. Registro Fotográfico")
+    imagenes_cargadas = st.file_uploader(
+        "Carga las fotos de evidencia (JPG, PNG):", 
+        type=["jpg", "jpeg", "png"], 
+        accept_multiple_files=True
+    )
 
-        submitted = st.form_submit_button("🚀 Generar Informe con Fotografías")
+    submitted = st.form_submit_button("🚀 Generar Informe con Fotografías")
 
     if submitted:
         # Construir la cadena de grupos combinados
@@ -85,18 +85,21 @@ else:
                 "{{ G1, G2, G3}}": texto_grupos
             }
 
-            # 1. Reemplazo en párrafos
+            # 1. Reemplazo en párrafos normales
             for p in doc.paragraphs:
                 for tag, valor in reemplazos.items():
                     if tag in p.text:
                         p.text = p.text.replace(tag, valor)
 
-                # 2. Inserción de Fotos en el marcador {{Suministrar fotos aquí}}
+            # 2. Insertar las imágenes ANTES de la firma
+            # Buscamos el párrafo con el marcador {{Suministrar fotos aquí}}
+            for i, p in enumerate(doc.paragraphs):
                 if "{{Suministrar fotos aquí}}" in p.text:
-                    p.text = p.text.replace("{{Suministrar fotos aquí}}", "") # Limpiar etiqueta
+                    p.text = p.text.replace("{{Suministrar fotos aquí}}", "") # Borrar la etiqueta
                     
                     if imagenes_cargadas:
-                        # Crear una tabla de 2 columnas para organizar las fotos limpiamente
+                        # Insertar las imágenes organizadas mediante párrafos centrados ordenados
+                        # (O una tabla insertada justamente en la posición previa a la firma)
                         num_fotos = len(imagenes_cargadas)
                         filas = (num_fotos + 1) // 2
                         
@@ -111,14 +114,16 @@ else:
                             p_celda = celda.paragraphs[0]
                             p_celda.alignment = WD_ALIGN_PARAGRAPH.CENTER
                             
-                            # Convertir imagen cargada a BytesIO e insertar ajustando ancho a 6.5 cm
                             img_bytes = io.BytesIO(img_file.read())
                             run = p_celda.add_run()
-                            run.add_picture(img_bytes, width=Cm(6.5))
+                            run.add_picture(img_bytes, width=Cm(6.0))
                             
-                            # Leyenda debajo de cada foto
                             p_leyenda = celda.add_paragraph(f"Evidencia {idx + 1}: Formación Práctica")
                             p_leyenda.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                        
+                        # Mover la tabla creada justo antes del párrafo 'Elaborado por:'
+                        p._p.addprevious(tabla_fotos._tbl)
+                    break
 
             # Guardar archivo generado en memoria
             output = io.BytesIO()
@@ -131,7 +136,7 @@ else:
                 file_name=f"Informe_Evidencias_{texto_grupos.replace(' ', '_')}.docx",
                 mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
             )
-            st.success("¡Informe generado con éxito con las fotografías ajustadas!")
+            st.success("¡Informe generado con éxito con las fotografías ubicadas antes de la firma!")
 
         except Exception as e:
             st.error(f"Ocurrió un error al procesar el informe: {e}")
