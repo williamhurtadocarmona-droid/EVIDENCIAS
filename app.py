@@ -54,16 +54,18 @@ else:
         with col2:
             g3 = st.text_input("Grupo 3 (Opcional):", value="")
 
-    st.markdown("---")
-    st.markdown("### 2. Registro Fotográfico")
-    imagenes_cargadas = st.file_uploader(
-        "Carga las fotos de evidencia (JPG, PNG):", 
-        type=["jpg", "jpeg", "png"], 
-        accept_multiple_files=True
-    )
+        st.markdown("---")
+        st.markdown("### 2. Registro Fotográfico")
+        imagenes_cargadas = st.file_uploader(
+            "Carga las fotos de evidencia (JPG, PNG):", 
+            type=["jpg", "jpeg", "png"], 
+            accept_multiple_files=True
+        )
 
-    submitted = st.form_submit_button("🚀 Generar Informe con Fotografías")
+        # El botón DEBE estar dentro del 'with st.form'
+        submitted = st.form_submit_button("🚀 Generar Informe con Fotografías")
 
+    # Lógica que se ejecuta al enviar el formulario
     if submitted:
         # Construir la cadena de grupos combinados
         grupos_list = [g.strip() for g in [g1, g2, g3] if g.strip()]
@@ -91,15 +93,12 @@ else:
                     if tag in p.text:
                         p.text = p.text.replace(tag, valor)
 
-            # 2. Insertar las imágenes ANTES de la firma
-            # Buscamos el párrafo con el marcador {{Suministrar fotos aquí}}
-            for i, p in enumerate(doc.paragraphs):
+            # 2. Insertar las imágenes ANTES de la sección "Elaborado por:"
+            for p in doc.paragraphs:
                 if "{{Suministrar fotos aquí}}" in p.text:
-                    p.text = p.text.replace("{{Suministrar fotos aquí}}", "") # Borrar la etiqueta
+                    p.text = p.text.replace("{{Suministrar fotos aquí}}", "") # Limpiar etiqueta
                     
                     if imagenes_cargadas:
-                        # Insertar las imágenes organizadas mediante párrafos centrados ordenados
-                        # (O una tabla insertada justamente en la posición previa a la firma)
                         num_fotos = len(imagenes_cargadas)
                         filas = (num_fotos + 1) // 2
                         
@@ -121,7 +120,7 @@ else:
                             p_leyenda = celda.add_paragraph(f"Evidencia {idx + 1}: Formación Práctica")
                             p_leyenda.alignment = WD_ALIGN_PARAGRAPH.CENTER
                         
-                        # Mover la tabla creada justo antes del párrafo 'Elaborado por:'
+                        # Colocar la tabla justo antes del párrafo
                         p._p.addprevious(tabla_fotos._tbl)
                     break
 
